@@ -167,14 +167,14 @@ def get_bandInfo(inFile='OUTCAR'):
 
     for ii, line in enumerate(outcar):
         if 'NKPTS =' in line:
-            nkpts = int(line.split()[3])
+            nkpts = int(line.split()[3])                                # getting a value 
             nband = int(line.split()[-1])
 
         if 'ISPIN  =' in line:
             ispin = int(line.split()[2])
 
         if "k-points in reciprocal lattice and weights" in line:
-            Lvkpts = ii + 1
+            Lvkpts = ii + 1                                             # getting the index
 
         if 'reciprocal lattice vectors' in line:
             ibasis = ii + 1

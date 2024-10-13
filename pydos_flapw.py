@@ -398,8 +398,8 @@ def readDOSFromFile(opts):
     # the dos basic info
     # nspin: 1 -> nonpolarized
     # nspin: 2 -> polarized
-    # nspin, nedos = [int(x) for x in inp[0].split()[1:]]
-    nspin, nedos = [int(x) for x in inp[0].split()[:2]]
+    nspin, nedos = [int(x) for x in inp[0].split()[1:]]
+    # nspin, nedos = [int(x) for x in inp[0].split()[:2]]
     labels = inp[1].split()[1:]
     # data
     DOS = np.array([line.split() for line in inp[2:] if line.strip()],
@@ -744,9 +744,6 @@ if __name__ == '__main__':
     dosplot(xen, tdos, pdos, opts)
     t1 = time()
     print('DOS plot completed! Time Used: %.2f [sec]' % (t1 - t0))
-
-    # Show 
-    print(xen)
 
     # save dos to file
     if opts.dosToFile:

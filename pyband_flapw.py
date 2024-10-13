@@ -1,3 +1,13 @@
+'''
+Original Script by: 
+https://github.com/QijingZheng
+
+Edited for FLAPW purposes by:
+https://github.com/andim53
+
+Date: 13 October 2024
+'''
+
 import os
 import re
 import numpy as np

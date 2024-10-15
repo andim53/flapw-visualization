@@ -145,7 +145,7 @@ def readDOSFromFile(opts):
     # the dos basic info
     # nspin: 1 -> nonpolarized
     # nspin: 2 -> polarized
-    nspin, nedos = [int(x) for x in inp[0].split()[1:]]
+    # nspin, nedos = [int(x) for x in inp[0].split()[1:]]
     # nspin, nedos = [int(x) for x in inp[0].split()[:2]]
     labels = inp[1].split()[1:]
     # data
@@ -180,8 +180,6 @@ if __name__ == '__main__':
     opts, args = command_line_arg()
 
     xen, tdos, pdos = readDOSFromFile(opts)
-
-    print(xen, tdos, pdos)
 
     # t0 = time()
     # dosplot(xen, tdos, pdos, opts)

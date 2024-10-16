@@ -405,9 +405,38 @@ def readDOSFromFile(opts):
     DOS = np.array([line.split() for line in inp[2:] if line.strip()],
                    dtype=float)
     NoPdos = (DOS.shape[1] - 1) // nspin - 1
+    
+    '''
+    So NoPdos represents the number of 
+    projected DOS components after 
+    removing those accounted for by energy and spin.
+    
+    Ex:
+    NoPdos = (5 - 1) // 1 - 1 = 3
+    This suggests that there are 3 projected 
+    DOS components (e.g., px, py, pz orbitals, etc.).
+    
+    '''
 
     tDOS = np.empty((nedos, nspin))
+    
+    '''
+    tDOS (Total DOS)
+    5 corresponds to nedos, which is the number 
+    of energy points (5 discrete energy values).
+    
+    1 corresponds to nspin, the number of 
+    spin channels (in this case, nspin = 1, 
+    meaning the system is spin-unpolarized).
+    '''
+        
     pDOS = []
+    
+    '''
+    Projected DOS (pDOS) refers to the decomposition 
+    of the DOS onto specific atomic orbitals 
+    (like s, p, d, or f orbitals) or atoms.
+    '''
     xen = DOS[:, 0]
     for ii in range(nspin):
         tDOS[:, ii] = DOS[:, (ii + 1) * (NoPdos + 1)]

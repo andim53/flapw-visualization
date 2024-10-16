@@ -23,7 +23,7 @@ def command_line_arg():
 
     par.add_option("-i", '--input',
                    action='store', type="string", dest='dos',
-                   default='DOS',
+                   default='dos.xy',
                    help='location of the DOS file')
     
     par.add_option('-s', '--size', nargs=2,

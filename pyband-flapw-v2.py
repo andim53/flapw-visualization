@@ -93,8 +93,10 @@ def command_line_arg():
 
 __version__ = 1.0
 opts, args = command_line_arg()
-data = pd.read_csv(opts.filename, sep=r'\s+', skiprows=1, 
-                   names=['kx', 'ky', 'kz', 'dist', 'eig', 'iband', 'line'])
+
+column_names = ['dist', 'eig', 'iband', 's', 'pz', 'px', 'py', 'dz2r2', 'dxz', 'dyz', 'dxy', 'dx2y2',
+                'fm0', 'f+m1', 'f-m1', 'f+m2', 'f-m2', 'f+m3', 'f-m3']
+data_bndatm = pd.read_csv(opts.filename, delim_whitespace=True, header=None, names=column_names, comment='#')
 
 # Find the max line
 max_line_value = data['line'].max()

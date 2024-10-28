@@ -55,9 +55,10 @@ def command_line_arg():
     par = OptionParser(usage=usage, version=__version__)
 
     par.add_option('-f', '--file',
-                   action='store', type="string",
-                   dest='filename', default='band.xy',
-                   help='location of band.xy')
+                    action='store', type="string",
+                    dest='filename', default='band.xy,bndaxy_a1.xy',
+                    help='Location of the band files, separated by a comma if multiple, no space in between.')
+
     
     par.add_option('-s', '--size', nargs=2,
                    action='store', type="float", dest='figsize',
@@ -94,80 +95,85 @@ def command_line_arg():
 __version__ = 1.0
 opts, args = command_line_arg()
 
-column_names = ['dist', 'eig', 'iband', 's', 'pz', 'px', 'py', 'dz2r2', 'dxz', 'dyz', 'dxy', 'dx2y2',
-                'fm0', 'f+m1', 'f-m1', 'f+m2', 'f-m2', 'f+m3', 'f-m3']
-data_bndatm = pd.read_csv(opts.filename, delim_whitespace=True, header=None, names=column_names, comment='#')
+file_list = opts.filename.split(',')
 
-# Find the max line
-max_line_value = data['line'].max()
+file_path_band = file_list[0]
+file_path_bndatm = file_list[1]
 
+# band.xyデータをDataFrameにロード
+data_band = pd.read_csv(file_path_band, sep=r'\s+', skiprows=1, 
+                        names=['kx', 'ky', 'kz', 'dist', 'eig', 'iband', 'line'])
+
+# lineの最大値を取得し、整数に変換
+max_line_value = int(data_band['line'].max())
+
+# lineの値が1からmax_line_valueまでの各値に対して、最初と最後に出現するdistの値を抽出
 x_positions_for_labels = []
 for line_value in range(1, max_line_value + 1):
-    first_occurrence = data[data['line'] == line_value]['dist'].iloc[0]
+    first_occurrence = data_band[data_band['line'] == line_value]['dist'].iloc[0]
     x_positions_for_labels.append(first_occurrence)
     if line_value == max_line_value:
-        last_occurrence = data[data['line'] == line_value]['dist'].iloc[-1]
+        last_occurrence = data_band[data_band['line'] == line_value]['dist'].iloc[-1]
         x_positions_for_labels.append(last_occurrence)
 
-# Convert to array to get the min and max later
-x_positions_for_labels = np.array(x_positions_for_labels)
 
-# Initiazlize graph
-width, height = opts.figsize
-if opts.ylim:
-    ymin, ymax = opts.ylim
-else:
-    _ = opts.ylim
+# custom_labels の定義
+custom_labels = ['Γ', 'X', 'U|K', 'R', 'Z', 'A']
 
-dpi = opts.dpi
 
-fig = plt.figure()
-fig.set_size_inches(width, height)
-ax = plt.subplot(111)
+column_names = ['dist', 'eig', 'iband', 's', 'pz', 'px', 'py', 'dz2r2', 'dxz', 'dyz', 'dxy', 'dx2y2',
+                'fm0', 'f+m1', 'f-m1', 'f+m2', 'f-m2', 'f+m3', 'f-m3']
+data_bndatm = pd.read_csv(file_path_bndatm, sep=r'\s+', header=None, names=column_names, comment='#')
 
-clrs = plt.cm.viridis(np.linspace(0, 1, len(data['iband'].unique())))
 
-for iband, color in zip(data['iband'].unique(), clrs):
-    subset = data[data['iband'] == iband]
-    ax.plot(subset['dist'], 
-            subset['eig'], 
-            lw=opts.linewidth,
-            linestyle='-', 
-            color='b', 
-            alpha=0.8, 
-            zorder=0)
-    
-custom_labels = ['Γ', 'X', 'M', 'R', 'Z', 'A']
+# Extract the necessary columns
+dist = data_bndatm['dist']
+eig = data_bndatm['eig']
 
+# List of components to plot
+components = {
+    's': ('blue', 's'),
+    'pz': ('green', 'pz'),
+    'px': ('cyan', 'px'),
+    'py': ('magenta', 'py'),
+    'dz2r2': ('red', 'dz2r2'),
+    'dxz': ('orange', 'dxz'),
+    'dyz': ('purple', 'dyz'),
+    'dxy': ('brown', 'dxy'),
+    'dx2y2': ('olive', 'dx2y2'),
+    #'fm0': ('lightblue', 'fm0'),
+    #f+m1': ('pink', 'f+m1'),
+    #'f-m1': ('lightgreen', 'f-m1'),
+    #'f+m2': ('lightcoral', 'f+m2'),
+    #'f-m2': ('yellow', 'f-m2'),
+    #'f+m3': ('lightgray', 'f+m3'),
+    #'f-m3': ('darkblue', 'f-m3'),
+}
+
+# Create the plot
+plt.figure(figsize=(12, 8))
+
+# Scatter plot for each component based on their weights
+for component, (color, label) in components.items():
+    plt.scatter(dist, eig, s=data_bndatm[component] * 1, c=color, label=label, alpha=0.5)
+
+plt.ylabel('Energy [eV]', fontsize=14)
+plt.ylim(-10, 10)
+
+# x位置での垂直線を描画
 for pos in x_positions_for_labels:
-    ax.axvline(x=pos, 
-               color ='k', 
-               linestyle='--', 
-               linewidth=0.5,
-               alpha=0.5)
+    plt.axvline(x=pos, color='gray', linestyle='--', linewidth=0.1)
 
-ax.set_ylabel('Energy [eV]',
-              labelpad=5)
+# カスタムx軸の目盛りとラベルを設定
+plt.xticks(x_positions_for_labels, custom_labels)
 
-ax.set_xticks(x_positions_for_labels)
+# x軸の範囲をデータが存在する範囲に設定
+plt.xlim(data_bndatm['dist'].min(), data_bndatm['dist'].max())
 
-if opts.kpts:
-    ax.set_xticklabels(kpath_name_parse(opts.kpts))
-else:
-    ax.set_xticklabels([])
+# 凡例の作成
+handles, labels = plt.gca().get_legend_handles_labels()
+legend_markers = [plt.Line2D([0], [0], marker='o', color='w', markerfacecolor=h.get_facecolor()[0], markersize=10) for h in handles]
+plt.legend(legend_markers, labels, loc='upper right')
 
-if opts.ylim:
-    ax.set_ylim(ymin, ymax)
-
-# Plot the min and max of X axis
-ax.set_xlim(x_positions_for_labels.min(), x_positions_for_labels.max())
-
-ax.set_xticks(x_positions_for_labels)
-ax.yaxis.set_minor_locator(AutoMinorLocator(2))
-plt.tight_layout(pad=0.20)
-plt.savefig(opts.bandimage, dpi=opts.dpi)
-
-# Diamond K-Path
-# -k 'G, X, L, W, K, G' 
-
+plt.grid(True)
 plt.show()

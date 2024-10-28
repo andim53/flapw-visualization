@@ -89,6 +89,13 @@ def command_line_arg():
                    action='store', type="string", dest='bandimage',
                    default='band.png',
                    help='output image name, "band.png" by default')
+    
+    # New option for limiting components up to a specified orbital
+    par.add_option('--components',
+                   action='store', type="string", dest='components',
+                   default='dx2y2',
+                   help='Specify the highest component to include in the plot. Default is "dx2y2"')
+
     return par.parse_args()
 
 
@@ -116,7 +123,6 @@ for line_value in range(1, max_line_value + 1):
         last_occurrence = data_band[data_band['line'] == line_value]['dist'].iloc[-1]
         x_positions_for_labels.append(last_occurrence)
 
-
 # custom_labels の定義
 custom_labels = ['Γ', 'X', 'U|K', 'R', 'Z', 'A']
 
@@ -125,55 +131,98 @@ column_names = ['dist', 'eig', 'iband', 's', 'pz', 'px', 'py', 'dz2r2', 'dxz', '
                 'fm0', 'f+m1', 'f-m1', 'f+m2', 'f-m2', 'f+m3', 'f-m3']
 data_bndatm = pd.read_csv(file_path_bndatm, sep=r'\s+', header=None, names=column_names, comment='#')
 
-
-# Extract the necessary columns
+# # Extract the necessary columns
 dist = data_bndatm['dist']
 eig = data_bndatm['eig']
 
-# List of components to plot
-components = {
-    's': ('blue', 's'),
-    'pz': ('green', 'pz'),
-    'px': ('cyan', 'px'),
-    'py': ('magenta', 'py'),
-    'dz2r2': ('red', 'dz2r2'),
-    'dxz': ('orange', 'dxz'),
-    'dyz': ('purple', 'dyz'),
-    'dxy': ('brown', 'dxy'),
-    'dx2y2': ('olive', 'dx2y2'),
-    #'fm0': ('lightblue', 'fm0'),
-    #f+m1': ('pink', 'f+m1'),
-    #'f-m1': ('lightgreen', 'f-m1'),
-    #'f+m2': ('lightcoral', 'f+m2'),
-    #'f-m2': ('yellow', 'f-m2'),
-    #'f+m3': ('lightgray', 'f+m3'),
-    #'f-m3': ('darkblue', 'f-m3'),
-}
+# Default component order
+component_order = ['s', 'pz', 'px', 'py', 'dz2r2', 'dxz', 'dyz', 'dxy', 'dx2y2',
+                   'fm0', 'f+m1', 'f-m1', 'f+m2', 'f-m2', 'f+m3', 'f-m3']
 
-# Create the plot
-plt.figure(figsize=(12, 8))
+# Determine the cutoff component
+cutoff_index = component_order.index(opts.components) + 1
+selected_components = component_order[:cutoff_index]
 
-# Scatter plot for each component based on their weights
+import random
+import colorsys
+# Generate dynamic, distinguishable light colors for each component
+def generate_light_color():
+    base_colors = []
+    hue_step = 1.0 / len(selected_components)  # Distribute colors evenly across the hue spectrum
+
+    for i in range(len(selected_components)):
+        hue = i * hue_step  # Set a different hue for each component
+        lightness = random.uniform(0.7, 0.85)  # Keep lightness high for a pastel color
+        saturation = random.uniform(0.4, 0.6)  # Moderate saturation for distinguishability
+        rgb = colorsys.hls_to_rgb(hue, lightness, saturation)
+        base_colors.append(rgb)
+    
+    return {component: (base_colors[i], component) for i, component in enumerate(selected_components)}
+
+components = generate_light_color()
+
+# Convert to array to get the min and max later
+x_positions_for_labels = np.array(x_positions_for_labels)
+
+# Initiazlize graph
+width, height = opts.figsize
+if opts.ylim:
+    ymin, ymax = opts.ylim
+else:
+    _ = opts.ylim
+
+dpi = opts.dpi
+
+fig = plt.figure()
+fig.set_size_inches(width, height)
+ax = plt.subplot(111)
+
+# Scatter plot for each component based on their weights, with no fill
 for component, (color, label) in components.items():
-    plt.scatter(dist, eig, s=data_bndatm[component] * 1, c=color, label=label, alpha=0.5)
+    plt.scatter(dist, eig, 
+                s=data_bndatm[component] * 1, 
+                edgecolors=color,  # Set edge color
+                facecolors='none',  # No fill color
+                label=label, 
+                alpha=0.6)
 
-plt.ylabel('Energy [eV]', fontsize=14)
-plt.ylim(-10, 10)
 
-# x位置での垂直線を描画
+opts.kpts = "G, X, U|K, R, Z, A" # K-path for diamond
+
 for pos in x_positions_for_labels:
-    plt.axvline(x=pos, color='gray', linestyle='--', linewidth=0.1)
+    ax.axvline(x=pos, 
+               color ='k', 
+               linestyle='--', 
+               linewidth=0.5,
+               alpha=0.5)
 
-# カスタムx軸の目盛りとラベルを設定
-plt.xticks(x_positions_for_labels, custom_labels)
+ax.set_ylabel('Energy [eV]',
+              labelpad=5)
 
-# x軸の範囲をデータが存在する範囲に設定
-plt.xlim(data_bndatm['dist'].min(), data_bndatm['dist'].max())
+ax.set_xticks(x_positions_for_labels)
 
-# 凡例の作成
+if opts.kpts:
+    ax.set_xticklabels(kpath_name_parse(opts.kpts))
+else:
+    ax.set_xticklabels([])
+
+if opts.ylim:
+    ax.set_ylim(ymin, ymax)
+
+# Plot the min and max of X axis
+ax.set_xlim(x_positions_for_labels.min(), x_positions_for_labels.max())
+
+# Update legend to use edge-only markers
 handles, labels = plt.gca().get_legend_handles_labels()
-legend_markers = [plt.Line2D([0], [0], marker='o', color='w', markerfacecolor=h.get_facecolor()[0], markersize=10) for h in handles]
+legend_markers = [plt.Line2D([0], [0], marker='o', color=h.get_edgecolor()[0],  # Use edge color only
+                              markerfacecolor='none', markersize=10, 
+                              markeredgewidth=1.5) for h in handles]  # Adjust edge width for clarity
 plt.legend(legend_markers, labels, loc='upper right')
 
 plt.grid(True)
+
+ax.set_xticks(x_positions_for_labels)
+ax.yaxis.set_minor_locator(AutoMinorLocator(2))
+plt.tight_layout(pad=0.20)
+plt.savefig(opts.bandimage, dpi=opts.dpi)
 plt.show()

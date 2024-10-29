@@ -62,7 +62,7 @@ def command_line_arg():
     
     par.add_option('-s', '--size', nargs=2,
                    action='store', type="float", dest='figsize',
-                   default=(3.0, 4.0),
+                   default=(7.0, 4.0),
                    help='figure size of the output plot, ex: (3.0, 4.0)')
     
     par.add_option('-y', nargs=2,

@@ -115,6 +115,8 @@ def interactive_plot(file_path):
     # インタラクティブなプロットを表示
     display(interactive_plotter)
 
+'''
 # 実行: ファイルパスを指定してインタラクティブプロットを表示
 file_path = 'input/den.xsf'
 interactive_plot(file_path)
+'''
